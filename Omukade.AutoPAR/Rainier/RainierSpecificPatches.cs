@@ -39,16 +39,5 @@ namespace Omukade.AutoPAR.Rainier
 
             copyStateMethod.IsVirtual = true;
         }
-
-        public static void AddJsonIgnoreAttribute_SetKnockoutAtFullHealthByDamageMetaData(TypeDefinition type)
-        {
-            if (type?.Namespace != "MatchLogic" || type?.Name != "ResolveAttack") return;
-
-            Type jsonIgnoreType = typeof(JsonIgnoreAttribute);
-            ConstructorInfo jsonIgnoreConstructor = jsonIgnoreType.GetConstructor(Type.EmptyTypes)!;
-            MethodReference constructorRef = type.Module.ImportReference(jsonIgnoreConstructor);
-
-            type.Fields.First(f => f.Name == "_setKnockoutAtFullHealthByDamageMetaData").CustomAttributes.Add(new CustomAttribute(constructorRef));
-        }
     }
 }

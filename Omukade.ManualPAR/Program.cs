@@ -110,7 +110,6 @@ internal class Program
         if(args.Contains("--rainier-specific"))
         {
             parCore.CecilProcessors.Add(RainierSpecificPatches.MakeGameStateCloneVirtual);
-            parCore.CecilProcessors.Add(RainierSpecificPatches.AddJsonIgnoreAttribute_SetKnockoutAtFullHealthByDamageMetaData);
         }
 
         string targetDirectory = sourceDirectory.TrimEnd(Path.DirectorySeparatorChar) + "_PAR";

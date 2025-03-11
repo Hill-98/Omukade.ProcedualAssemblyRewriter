@@ -17,6 +17,8 @@
 **************************************************************************/
 
 using Mono.Cecil;
+using Newtonsoft.Json;
+using System.Reflection;
 
 namespace Omukade.AutoPAR
 {
@@ -29,26 +31,70 @@ namespace Omukade.AutoPAR
             if(type.IsNested && !type.IsNestedPublic) type.IsNestedPublic = true;
             if (!type.IsNested && !type.IsPublic) type.IsPublic = true;
 
+            ConstructorInfo JsonIgnoreAttributeConstructor = typeof(JsonIgnoreAttribute).GetConstructor(Type.EmptyTypes);
+            MethodReference JsonIgnoreAttributeReference = type.Module.ImportReference(JsonIgnoreAttributeConstructor);
+            ConstructorInfo NonSerializedAttributeConstructor = typeof(NonSerializedAttribute).GetConstructor(Type.EmptyTypes);
+            MethodReference NonSerializedAttributeReference = type.Module.ImportReference(NonSerializedAttributeConstructor);
+
             foreach (FieldDefinition field in type.Fields)
             {
                 if (field.IsCompilerGenerated()) continue;
-                if (!field.IsPublic) field.IsPublic = true;
+
+                bool haveJsonPropertyAttribute = false;
+
+                foreach (CustomAttribute item in field.CustomAttributes)
+                {
+                    if (item.AttributeType.FullName.Contains("JsonPropertyAttribute"))
+                    {
+                        haveJsonPropertyAttribute = true;
+                        break;
+                    }
+                }
+
+                if (!field.IsPublic)
+                {
+                    field.IsPublic = true;
+                    if (!haveJsonPropertyAttribute)
+                    {
+                        field.CustomAttributes.Add(new CustomAttribute(JsonIgnoreAttributeReference));
+                        field.CustomAttributes.Add(new CustomAttribute(NonSerializedAttributeReference));
+                    }
+                }
             }
 
             foreach (PropertyDefinition prop in type.Properties)
             {
                 // Don't use IsCompilerGenerated for properties, as this also includes "{get; set;}" properties.
 
+                bool haveJsonPropertyAttribute = false;
+
+                foreach (CustomAttribute item in prop.CustomAttributes)
+                {
+                    if (item.AttributeType.FullName.Contains("JsonPropertyAttribute"))
+                    {
+                        haveJsonPropertyAttribute = true;
+                        break;
+                    }
+                }
+
                 MethodDefinition? getter = prop.GetMethod;
                 if (getter != null && !getter.IsPublic)
                 {
                     getter.IsPublic = true;
+                    if (!haveJsonPropertyAttribute)
+                    {
+                        prop.CustomAttributes.Add(new CustomAttribute(NonSerializedAttributeReference));
+                    }
                 }
 
                 MethodDefinition? setter = prop.SetMethod;
                 if (setter != null && !setter.IsPublic)
                 {
                     setter.IsPublic = true;
+                    if (!haveJsonPropertyAttribute)
+                    {
+                        prop.CustomAttributes.Add(new CustomAttribute(JsonIgnoreAttributeReference));
+                    }
                 }
             }
 
